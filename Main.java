@@ -1,4 +1,9 @@
-import java.util.concurrent.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
@@ -13,7 +18,6 @@ public class Main {
         System.out.println("Threads: " + THREADS);
 
         ExecutorService executor = Executors.newFixedThreadPool(THREADS);
-
         AtomicLong totalSteps = new AtomicLong(0);
 
         long startTime = System.nanoTime();
@@ -23,13 +27,7 @@ public class Main {
         for (int t = 0; t < THREADS; t++) {
 
             final int start = t * blockSize + 1;
-            final int end;
-
-            if (t == THREADS - 1) {
-                end = LIMIT;
-            } else {
-                end = (t + 1) * blockSize;
-            }
+            final int end = (t == THREADS - 1) ? LIMIT : (t + 1) * blockSize;
 
             executor.submit(() -> {
                 long localSum = 0;
@@ -59,6 +57,8 @@ public class Main {
         System.out.println("Total steps: " + totalSteps.get());
         System.out.println("Average steps: " + averageSteps);
         System.out.println("Execution time, sec: " + executionTimeSec);
+
+        saveResultsToCsv(totalSteps.get(), averageSteps, executionTimeSec);
     }
 
     static long collatzSteps(long n) {
@@ -75,5 +75,29 @@ public class Main {
         }
 
         return steps;
+    }
+
+    static void saveResultsToCsv(long totalSteps, double averageSteps, double executionTimeSec) {
+        new File("results").mkdirs();
+
+        String filePath = "results/collatz_parallel_results.csv";
+
+        try (FileWriter writer = new FileWriter(filePath)) {
+
+            writer.append("N,threads,total_steps,average_steps,execution_time_sec\n");
+
+            writer.append(
+                    LIMIT + "," +
+                            THREADS + "," +
+                            totalSteps + "," +
+                            averageSteps + "," +
+                            executionTimeSec + "\n"
+            );
+
+            System.out.println("Results saved to " + filePath);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
